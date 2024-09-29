@@ -1,0 +1,34 @@
+.flowing-border {
+  width: 500px;
+  height: 350px;
+  position: relative;
+  background-color: black; /* Adjust according to your design */
+  border-radius: 20px; /* Add this to match the rounded corners */
+}
+
+.flowing-border:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 2px solid transparent;
+  border-width: 4px;
+  box-sizing: border-box;
+  border-image: linear-gradient(90deg, blue, purple);
+  border-image-slice: 1;
+  animation: flow 4s linear infinite;
+  border-radius: 20px; /* Same value as the parent to match the curvature */
+}
+
+@keyframes flow {
+  0% {
+    border-image: linear-gradient(90deg, blue, purple);
+    border-image-slice: 1;
+  }
+  100% {
+    border-image: linear-gradient(360deg, blue, purple);
+    border-image-slice: 1;
+  }
+}
