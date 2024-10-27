@@ -2,21 +2,21 @@ import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 
-const ParaticipantSchema = new Schema({
+const ParticipantSchema = new mongoose.Schema({
   name: {
     type : String,
     required : true,
   },
   
   joinedAt: {
-    type : String,
+    type : Date,
     default : Date.now
   },
   exitedAt : {
-    type : String,
-    required : true
+    type : Date,
+    required : false
   },
   
 });
 
-export default ParaticipantSchema;
+export default ParticipantSchema;

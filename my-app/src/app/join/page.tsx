@@ -1,6 +1,7 @@
 "use client";
 
 import React, { FormEvent } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,17 +16,49 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Toast } from "@radix-ui/react-toast";
 
 export default function Join() {
   const [roomId, setRoomId] = useState("");
   const [name, setName] = useState("");
   const router = useRouter();
+  const { toast } = useToast();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    console.log("hi");
+  async function checkRoom(roomId: String): Promise<boolean> {
+    try {
+      const res = await fetch("/api/checkroom", {
+        method: "POST",
+        body: JSON.stringify({ roomId }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Room not found");
+      }
+
+      const data = await res.json();
+      console.log(JSON.stringify(data));
+      return data;
+    } catch (error) {
+      console.error("Error checking room:", error);
+      return false;
+    }
+  }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (name != "" && roomId != "") {
-      router.push(`/room/${roomId}`);
+
+    if (await checkRoom(roomId)) {
+      if (name != "" && roomId != "") {
+        router.push(`/room/${roomId}`);
+      }
+    } else {
+      console.log("Room not found - showing toast notification");
+      toast({
+        variant: "destructive",
+        title: "Oops!! Room id doesn't exist",
+        description: "Try again with existing Room id",
+        duration: 1000,
+      });
     }
   };
   return (

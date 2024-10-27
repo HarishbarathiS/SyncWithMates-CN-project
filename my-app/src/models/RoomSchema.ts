@@ -9,8 +9,8 @@ const RoomSchema = new Schema({
     required : true,
     unique : true,
   }, // String is shorthand for {type: String}
-  host : {
-    type : Boolean,
+  host_name : {
+    type : String,
     required : true
   },
   participants: [ParticipantSchema],
@@ -20,7 +20,7 @@ const RoomSchema = new Schema({
   },
   ClosedAt : {
     type : String,
-    required : true
+    required : false
   }
 });
 

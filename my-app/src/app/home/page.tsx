@@ -14,6 +14,12 @@ import {
 import { v4 as uuidv4 } from "uuid";
 
 export default function Home() {
+  // const handleCreateRoomClick = () => {
+  //   const response = await fetch('/api/create-room', {
+  //     method : 'POST',
+  //     body : Json.stringify()
+  //   })
+  // }
   const [roomId, setRoomId] = useState<String>("");
 
   useEffect(() => {
@@ -31,7 +37,7 @@ export default function Home() {
         <CardContent>
           <div className="grid w-full items-center ">
             <div className="flex flex-col gap-10">
-              <Link href={`/room/${roomId}`} legacyBehavior passHref>
+              <Link href={"/create"} legacyBehavior passHref>
                 <Button className="focus:outline-none text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:ring-purple-300 font-medium rounded-lg text-lg px-5 py-2.5 mb-2 dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-900">
                   Create a Room
                 </Button>
