@@ -11,22 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { v4 as uuidv4 } from "uuid";
 
 export default function Home() {
-  // const handleCreateRoomClick = () => {
-  //   const response = await fetch('/api/create-room', {
-  //     method : 'POST',
-  //     body : Json.stringify()
-  //   })
-  // }
-  const [roomId, setRoomId] = useState<String>("");
-
-  useEffect(() => {
-    const id = uuidv4();
-    setRoomId(id.slice(0, 6));
-  }, []);
-
   return (
     <div className="flex flex-row items-center justify-center h-screen bg-zinc-700">
       <Card className="w-[500px] h-[350px]">
@@ -37,12 +23,12 @@ export default function Home() {
         <CardContent>
           <div className="grid w-full items-center ">
             <div className="flex flex-col gap-10">
-              <Link href={"/create"} legacyBehavior passHref>
+              <Link href="/create" as="/create" legacyBehavior passHref>
                 <Button className="focus:outline-none text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:ring-purple-300 font-medium rounded-lg text-lg px-5 py-2.5 mb-2 dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-900">
                   Create a Room
                 </Button>
               </Link>
-              <Link href="/join" legacyBehavior passHref>
+              <Link href="/join" as="/join" legacyBehavior passHref>
                 <Button className="focus:outline-none text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:ring-purple-300 font-medium rounded-lg text-lg px-5 py-2.5 mb-2 dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-900">
                   Join a Room
                 </Button>

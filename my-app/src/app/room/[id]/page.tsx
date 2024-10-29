@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import io, { Socket } from "socket.io-client";
+import { LuSend } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -13,12 +14,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ChatBox } from "@/components/ui/ChatBox";
 
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { useRouter } from "next/router";
 
 interface RoomPageProps {
   params: {
@@ -28,6 +31,63 @@ interface RoomPageProps {
 
 function Room({ params }: RoomPageProps) {
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<string[]>([]);
+  const [userCount, setUserCount] = useState(0);
+  const roomId = params.id;
+
+  const chatBoxRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null);
+
+  // Scroll to the bottom of ChatBox whenever messages change
+  useEffect(() => {
+    if (chatBoxRef.current) {
+      const scrollContainer = chatBoxRef.current.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      );
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    // Create socket connection
+    socketRef.current = io("http://localhost:4000", {
+      transports: ["websocket"],
+      reconnection: true,
+    });
+
+    // Connection event handlers
+    socketRef.current.on("connect", () => {
+      console.log("Client connected to socket");
+    });
+
+    socketRef.current.on("disconnect", () => {
+      console.log("Disconnected from socket");
+    });
+
+    socketRef.current.on("message", (data) => {
+      console.log("Message received from server :", data.count);
+      setUserCount(data.count);
+    });
+
+    socketRef.current.emit("message", "this is harish");
+
+    // Cleanup function
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleSendMessage = () => {
+    if (message.trim()) {
+      setMessages((prevMessages) => [...prevMessages, message]);
+      setMessage("");
+    }
+  };
 
   return (
     <div className="h-screen flex flex-col">
@@ -51,7 +111,7 @@ function Room({ params }: RoomPageProps) {
       <div className="flex-grow flex items-center justify-center mt-5 mb-5 overflow-hidden">
         <ResizablePanelGroup
           direction="horizontal"
-          className="w-full max-w-[90vw] max-h-[calc(100%-5px)] rounded-lg border"
+          className="w-full max-w-[90vw] max-h-[calc(100%-5px)] rounded-lg"
         >
           <ResizablePanel defaultSize={75}>
             <div className="flex h-full items-center justify-center p-6">
@@ -64,9 +124,11 @@ function Room({ params }: RoomPageProps) {
             defaultSize={25}
           >
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex flex-row text-white text-lg mt-1 h-10 mx-4 items-center justify-center">
+              <DropdownMenuTrigger className="flex flex-row text-white text-lg mt-1 h-10 mx-4 font-bold items-center justify-center">
                 Participants Online
-                <div className="mx-4 bg-lime-500 rounded-full w-7">7</div>
+                <div className="mx-4 bg-lime-500 rounded-full w-7">
+                  {userCount}
+                </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <ScrollArea className="h-[200px] w-auto rounded-md p-4">
@@ -86,16 +148,36 @@ function Room({ params }: RoomPageProps) {
                 </ScrollArea>
               </DropdownMenuContent>
             </DropdownMenu>
-            {/* </div> */}
-            <hr className="h-px my-1 bg-gray-200 border-0 dark:bg-gray-700"></hr>
-            <Input
-              className="h-11 mt-auto mx-5 mb-5 text-md rounded bg-zinc-700 text-white items-center justify-center"
-              id="message"
-              placeholder="Message here"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              required
-            />
+
+            <hr className="h-px my-2 bg-gray-200 border-0 dark:bg-gray-700"></hr>
+
+            <ScrollArea
+              ref={chatBoxRef}
+              className="flex-grow overflow-y-auto p-4 bg-zinc-700"
+            >
+              <ChatBox messages={messages} />
+            </ScrollArea>
+            <div className="flex mt-auto mb-3 max-w-sm items-center justify-center gap-2">
+              <Input
+                className="flex h-11 w-full mx-auto ml-2 font-semibold text-white"
+                // className="h-11 flex-shrink-0 mx-5 mb-5 mt-auto text-md rounded bg-zinc-700 text-white items-center justify-center"
+                id="message"
+                placeholder="Message here"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSendMessage();
+                }}
+                required
+              />
+              <Button
+                className="flex h-11 mr-2 bg-zinc-800rish"
+                type="submit"
+                onClick={handleSendMessage}
+              >
+                <LuSend />{" "}
+              </Button>
+            </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

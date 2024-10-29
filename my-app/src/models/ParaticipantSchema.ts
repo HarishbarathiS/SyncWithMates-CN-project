@@ -3,17 +3,20 @@ const { Schema } = mongoose;
 
 
 const ParticipantSchema = new mongoose.Schema({
+  user_id : {
+      type: mongoose.Schema.Types.ObjectId,  // Reference to Participant documents
+      required : true,
+  },
   name: {
     type : String,
     required : true,
   },
-  
   joinedAt: {
-    type : Date,
-    default : Date.now
+    type : String,
+    default : Date.now,
   },
   exitedAt : {
-    type : Date,
+    type : String,
     required : false
   },
   

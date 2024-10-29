@@ -4,19 +4,20 @@ const { Schema } = mongoose;
 
 const MessageSchema = new mongoose.Schema({
   room_id: {
-    type : String,
-    required : true,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Room',  // Reference to Room schema
+    required: true,
   },
-  user: {
+  user_id: {
     type : String,
     required : true
   },
-  content : {
+  message : {
     type : String,
     required : false
   },
   sentAt : {
-    type : Date,
+    type : String,
     default : Date.now
   }
 });

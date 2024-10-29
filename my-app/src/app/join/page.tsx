@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import mongoose from "mongoose";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -44,12 +45,55 @@ export default function Join() {
     }
   }
 
+  async function addParaticipanttoRoom(participantId: mongoose.Types.ObjectId) {
+    try {
+      const res = await fetch("/api/add-participant", {
+        method: "POST",
+        body: JSON.stringify({ roomId, participantId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.log("Participant added to room successfully", data);
+        return true;
+      } else {
+        const errorData = await res.json();
+        console.error("Error adding participant", errorData.message);
+      }
+    } catch (error) {
+      console.error("An unexpected error occured : ", error);
+    }
+  }
+
+  async function createParticipant() {
+    try {
+      const res = await fetch("/api/create-user", {
+        method: "POST",
+        body: JSON.stringify({ name, roomId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.log("Participant created successfully", data);
+        return data.participant.user_id;
+      } else {
+        const errorData = await res.json();
+        console.error("Error creating participant", errorData.message);
+      }
+    } catch (error) {
+      console.error("An unexpected error occured : ", error);
+    }
+  }
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (await checkRoom(roomId)) {
       if (name != "" && roomId != "") {
-        router.push(`/room/${roomId}`);
+        const participantId: mongoose.Types.ObjectId =
+          await createParticipant();
+        const res = await addParaticipanttoRoom(participantId);
+        if (res) {
+          router.push(`/room/${roomId}`);
+        }
       }
     } else {
       console.log("Room not found - showing toast notification");
@@ -102,7 +146,7 @@ export default function Join() {
               </div>
             </div>
             <div className="flex justify-between flex items-center p-6 pt-9">
-              <Link href="/home" legacyBehavior passHref>
+              <Link href="/home" as="/home" legacyBehavior passHref>
                 <Button className="focus:outline-none text-white bg-purple-700 hover:bg-purple-800 focus:ring-4 focus:ring-purple-300 font-medium rounded-lg text-lg px-5 py-2.5 mb-2 dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-900">
                   Back
                 </Button>
