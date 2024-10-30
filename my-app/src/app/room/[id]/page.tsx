@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect, useRef } from "react";
 import io, { Socket } from "socket.io-client";
 import { LuSend } from "react-icons/lu";
@@ -14,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 import { ChatBox } from "@/components/ui/ChatBox";
 
 import {
@@ -21,19 +21,18 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { useRouter } from "next/router";
 
-interface RoomPageProps {
-  params: {
-    id: string;
-  };
+interface RoomParams {
+  id: string;
 }
 
-function Room({ params }: RoomPageProps) {
+function Room({ params }: any) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<string[]>([]);
   const [userCount, setUserCount] = useState(0);
+  const [activeUsers, setActiveUsers] = useState<string[]>([]);
   const roomId = params.id;
+  const router = useRouter();
 
   const chatBoxRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -52,6 +51,12 @@ function Room({ params }: RoomPageProps) {
 
   useEffect(() => {
     // Create socket connection
+    const name = sessionStorage.getItem("username");
+    if (!name) {
+      router.push("http://localhost:3000/join");
+      return;
+    }
+
     socketRef.current = io("http://localhost:4000", {
       transports: ["websocket"],
       reconnection: true,
@@ -66,13 +71,21 @@ function Room({ params }: RoomPageProps) {
       console.log("Disconnected from socket");
     });
 
-    socketRef.current.on("message", (data) => {
-      console.log("Message received from server :", data.count);
-      setUserCount(data.count);
+    socketRef.current.on("userCount", (data) => {
+      console.log("Message received from server :", data);
+      setUserCount(data.userCount);
     });
 
-    socketRef.current.emit("message", "this is harish");
+    socketRef.current.on("userName", (data) => {
+      console.log("Message received from server :", data);
+      setActiveUsers(data.userName);
+    });
 
+    socketRef.current.emit("message", {
+      type: "join",
+      room_id: roomId,
+      name: name,
+    });
     // Cleanup function
     return () => {
       if (socketRef.current) {
@@ -131,21 +144,10 @@ function Room({ params }: RoomPageProps) {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <ScrollArea className="h-[200px] w-auto rounded-md p-4">
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-
-                  <DropdownMenuLabel>Harish</DropdownMenuLabel>
-                </ScrollArea>
+                <ScrollArea className="h-[200px] w-auto rounded-md p-4"></ScrollArea>
+                {/* {activeUsers.map((item: string) => (
+                  <DropdownMenuItem key={item}>{item}</DropdownMenuItem>
+                ))} */}
               </DropdownMenuContent>
             </DropdownMenu>
 

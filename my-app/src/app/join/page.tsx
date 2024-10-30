@@ -88,6 +88,10 @@ export default function Join() {
 
     if (await checkRoom(roomId)) {
       if (name != "" && roomId != "") {
+        if (window && window.sessionStorage) {
+          sessionStorage.setItem("username", name);
+        }
+
         const participantId: mongoose.Types.ObjectId =
           await createParticipant();
         const res = await addParaticipanttoRoom(participantId);

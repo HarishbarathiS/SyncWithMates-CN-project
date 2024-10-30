@@ -72,6 +72,9 @@ export default function Create() {
     const participantId: mongoose.Types.ObjectId = await createParticipant();
     createRoom(participantId);
     if (name != "") {
+      if (window && window.sessionStorage) {
+        sessionStorage.setItem("username", name);
+      }
       router.push(`/room/${roomId}`);
     }
   };
