@@ -1,21 +1,40 @@
 import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface MessageData {
-  messages: string[];
+interface Message {
+  content: string | null;
+  sender: string | null;
 }
 
-export function ChatBox({ messages }: MessageData) {
+interface ChatBoxProps {
+  messageData: Message[];
+}
+
+export function ChatBox({ messageData }: ChatBoxProps) {
+  // If messageData is undefined or null, return an empty div
+  if (!messageData) {
+    return <div className="flex flex-col space-y-4 w-full max-w-md"></div>;
+  }
+
   return (
-    <div className="flex flex-col mx-auto text-white font-semibold bg-zinc-700 gap-4 w-full max-w-md rounded-md p-1">
-      {messages.map((msg, index) => (
+    <div className="flex flex-col space-y-4 w-full max-w-md">
+      {messageData.map((msg, index) => (
         <div
           key={index}
-          className="flex py-2 px-4 mx-auto ml-0 rounded-md bg-zinc-800"
+          className="flex flex-col py-2 px-4 rounded-md bg-zinc-800"
         >
-          {msg}
+          {msg.sender && (
+            <span className="text-zinc-400 text-lime-400 text-md mb-1">
+              {msg.sender}
+            </span>
+          )}
+          {msg.content && (
+            <span className="text-white break-words">{msg.content}</span>
+          )}
         </div>
       ))}
     </div>
   );
 }
+
+export default ChatBox;

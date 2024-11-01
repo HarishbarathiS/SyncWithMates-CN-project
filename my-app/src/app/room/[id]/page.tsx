@@ -26,9 +26,14 @@ interface RoomParams {
   id: string;
 }
 
+interface Message {
+  content: string | null;
+  sender: string | null;
+}
+
 function Room({ params }: any) {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<string[]>([]);
+  const [message, setMessage] = useState<string>("");
+  const [messages, setMessages] = useState<Message[]>([]);
   const [userCount, setUserCount] = useState(0);
   const [activeUsers, setActiveUsers] = useState<string[]>([]);
   const roomId = params.id;
@@ -50,16 +55,17 @@ function Room({ params }: any) {
   }, [messages]);
 
   useEffect(() => {
-    // Create socket connection
     const name = sessionStorage.getItem("username");
     if (!name) {
       router.push("http://localhost:3000/join");
       return;
     }
 
+    // Initialize socket connection
     socketRef.current = io("http://localhost:4000", {
       transports: ["websocket"],
       reconnection: true,
+      timeout: 10000,
     });
 
     // Connection event handlers
@@ -72,20 +78,50 @@ function Room({ params }: any) {
     });
 
     socketRef.current.on("userCount", (data) => {
-      console.log("Message received from server :", data);
       setUserCount(data.userCount);
     });
 
-    socketRef.current.on("userName", (data) => {
-      console.log("Message received from server :", data);
-      setActiveUsers(data.userName);
+    socketRef.current.on("userNames", (data) => {
+      setActiveUsers(data.userNames);
     });
 
+    socketRef.current.on("ClientMessage", (data) => {
+      console.log("Message from socket : ", data.data, data.name);
+      console.log(data);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { content: data.data || "", sender: data.name || "" },
+      ]);
+    });
+
+    socketRef.current.on("userJoined", (data) => {
+      console.log(data);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          content: `${data.name} has joined the room`,
+          sender: "",
+        },
+      ]);
+    });
+
+    socketRef.current.on("userLeft", (data) => {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          content: `${data.name} has joined the room`,
+          sender: "",
+        },
+      ]);
+    });
+
+    // Join room
     socketRef.current.emit("message", {
       type: "join",
       room_id: roomId,
       name: name,
     });
+
     // Cleanup function
     return () => {
       if (socketRef.current) {
@@ -93,12 +129,28 @@ function Room({ params }: any) {
         socketRef.current = null;
       }
     };
-  }, []);
+  }, [roomId, router]);
+
+  function sendToSocketServer(message: Message) {
+    const name = sessionStorage.getItem("username");
+    if (socketRef.current) {
+      socketRef.current.emit("message", {
+        type: "message",
+        room_id: roomId,
+        name: name,
+        data: message,
+      });
+    }
+  }
 
   const handleSendMessage = () => {
     if (message.trim()) {
-      setMessages((prevMessages) => [...prevMessages, message]);
-      setMessage("");
+      // Append the message locally before sending
+      //setMessages((prevMessages) => [...prevMessages, message]);
+      const name = sessionStorage.getItem("username");
+      sendToSocketServer({ content: message, sender: name });
+      //console.log(messages);
+      //setMessage(""); // Clear the message input after sending
     }
   };
 
@@ -144,10 +196,14 @@ function Room({ params }: any) {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <ScrollArea className="h-[200px] w-auto rounded-md p-4"></ScrollArea>
-                {/* {activeUsers.map((item: string) => (
-                  <DropdownMenuItem key={item}>{item}</DropdownMenuItem>
-                ))} */}
+                <ScrollArea className="h-[200px] w-auto rounded-md p-4">
+                  {activeUsers.map((name, index) => (
+                    <DropdownMenuItem key={index} className="font-semibold">
+                      {" "}
+                      {name}{" "}
+                    </DropdownMenuItem>
+                  ))}
+                </ScrollArea>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -157,12 +213,13 @@ function Room({ params }: any) {
               ref={chatBoxRef}
               className="flex-grow overflow-y-auto p-4 bg-zinc-700"
             >
-              <ChatBox messages={messages} />
+              <div className="flex flex-col space-y-4 w-full max-w-md s">
+                <ChatBox messageData={messages} />
+              </div>
             </ScrollArea>
             <div className="flex mt-auto mb-3 max-w-sm items-center justify-center gap-2">
               <Input
                 className="flex h-11 w-full mx-auto ml-2 font-semibold text-white"
-                // className="h-11 flex-shrink-0 mx-5 mb-5 mt-auto text-md rounded bg-zinc-700 text-white items-center justify-center"
                 id="message"
                 placeholder="Message here"
                 value={message}
@@ -173,11 +230,11 @@ function Room({ params }: any) {
                 required
               />
               <Button
-                className="flex h-11 mr-2 bg-zinc-800rish"
+                className="flex h-11 mr-2 bg-zinc-800"
                 type="submit"
                 onClick={handleSendMessage}
               >
-                <LuSend />{" "}
+                <LuSend />
               </Button>
             </div>
           </ResizablePanel>
