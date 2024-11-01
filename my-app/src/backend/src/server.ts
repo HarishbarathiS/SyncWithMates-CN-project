@@ -16,9 +16,11 @@ app.use(express.json());
 // Create HTTP server
 const httpServer = createServer(app);
 
+
+
 interface User {
   name: string;
-  socket: any; // or Socket type if using socket.io
+  socket: Socket; // or Socket type if using socket.io
 }
 
 const rooms = new Map<string, Set<User>>();
@@ -32,38 +34,44 @@ const io = new Server(httpServer, {
 });
 
 // Socket.IO connection handling
-let room_id : string = "";
-let name : string = "";
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
 
-  
+  // const count = io.engine.clientsCount;
+  // console.log(count);
   // Handle chat messages
   socket.on("message", (message) => {
     console.log("Message received:", message);
-    room_id = message.room_id;
-    name = message.name;
-
+     const room_id = message.room_id;
+     const name = message.name;
+    socket.data.room_id = room_id;
+    socket.data.name = name;
     if(message.type === "join"){
 
 
-      if(!rooms.has(room_id)){
-        rooms.set(room_id, new Set());
+      if(!rooms.has(socket.data.room_id)){
+        rooms.set(socket.data.room_id, new Set());
       }
-
-      if(!rooms.get(room_id)?.has({name, socket})){
-        rooms.get(room_id)?.add({name, socket});
-        broadcastUserCount(room_id);
+      
+      if(!rooms.get(socket.data.room_id)?.has({name, socket})){
+        rooms.get(socket.data.room_id)?.add({name, socket});
+        broadcastUserCount(socket.data.room_id);
+        broadCastUserJoined(socket.data.room_id,socket.data.name);
       }
-
+      console.log(rooms);
     }
 
     // console.log(rooms.size);
 
-    if (message.type === "leave" && room_id && rooms.has(room_id)) {
+    if (message.type === "leave" && socket.data.room_id && rooms.has(socket.data.room_id)) {
       // Remove the WebSocket from the room on leave
-      rooms.get(room_id)?.delete({name, socket});
-      broadcastUserCount(room_id);
+      rooms.get(socket.data.room_id)?.delete({name, socket});
+      broadcastUserCount(socket.data.room_id);
+    }
+
+
+    if(message.type === "message" && name){
+      broadcastMessage(message.room_id,message.data.content, message.name);
     }
     
   });
@@ -71,21 +79,25 @@ io.on("connection", (socket) => {
   // Handle disconnection
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
-    console.log(rooms.get(room_id));
+    //console.log(rooms.get(room_id));
     
-    if (rooms.has(room_id)) {
-      const room = rooms.get(room_id) || new Set();
+    if (rooms.has(socket.data.room_id)) {
+      const room = rooms.get(socket.data.room_id) || new Set();
       for (const user of room) {
         if (user.socket === socket) {
+          console.log("hi")
+          broadCastUserLeft(socket.data.room_id, socket.data.name)
           room.delete(user);
           break;
         }
       }
-      if (rooms.get(room_id)?.size === 0) {
-        rooms.delete(room_id);
+      if (rooms.get(socket.data.room_id)?.size === 0) {
+        rooms.delete(socket.data.room_id);
       } else {
-        broadcastUserCount(room_id);
+        broadcastUserCount(socket.data.room_id);
       }
+
+      console.log(rooms)
     }
   });
 
@@ -95,12 +107,36 @@ io.on("connection", (socket) => {
   });
 });
 
+function broadcastMessage(room_id : string, data : string, name : string){
+  console.log(data);
+  console.log(rooms)
+  console.log(name);
+  rooms.get(room_id)?.forEach((client) => {
+    client.socket.emit("ClientMessage", { type: "ClientMessgae", data , name});
+  });
+}
+
 function broadcastUserCount (room_id : string) {
   const userCount = rooms.get(room_id)?.size || 0;
   const userNames = [...rooms.get(room_id) || []].map(user => user.name);
   rooms.get(room_id)?.forEach((client) => {
     client.socket.emit("userCount", { type: "UserCount", userCount });
-    client.socket.emit("userName", {type : "UserName", userNames})
+    client.socket.emit("userNames", {type : "UserName", userNames})
+  });
+}
+
+function broadCastUserJoined(room_id : string, name : string){
+  console.log("USER JOINING FUNCTIONING");
+  console.log(room_id);
+  rooms.get(room_id)?.forEach((client) => {
+    client.socket.emit("userJoined", { type: "UserJoined", name });
+  });
+}
+
+function broadCastUserLeft(room_id : string, name  : string){
+  console.log("bye");
+  rooms.get(room_id)?.forEach((client) => {
+    client.socket.emit("userLeft", {type : "UserLeft", name});
   });
 }
 
