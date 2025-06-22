@@ -16,7 +16,7 @@ app.use(express.json());
 // Create HTTP server
 const httpServer = createServer(app);
 
-
+let hostId: string | null = null;
 
 interface User {
   name: string;
@@ -36,6 +36,45 @@ const io = new Server(httpServer, {
 // Socket.IO connection handling
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
+
+  // Handle WebRTC signaling
+  socket.on("offer", ({ offer, userId, roomId }) => {
+    // Forward the offer to the specific user
+    rooms.get(roomId)?.forEach(user => {
+      if (user.name === userId) {
+        user.socket.emit("offer", {
+          offer,
+          userId: socket.data.name
+        });
+      }
+    });
+  });
+
+  socket.on("answer", ({ answer, userId, roomId }) => {
+    // Forward the answer to the specific user
+    rooms.get(roomId)?.forEach(user => {
+      if (user.name === userId) {
+        user.socket.emit("answer", {
+          answer,
+          userId: socket.data.name
+        });
+      }
+    });
+  });
+
+  socket.on("iceCandidate", ({ candidate, userId, roomId }) => {
+    // Forward the ICE candidate to the specific user
+    rooms.get(roomId)?.forEach(user => {
+      if (user.name === userId) {
+        user.socket.emit("iceCandidate", {
+          candidate,
+          userId: socket.data.name
+        });
+      }
+    });
+  });
+
+  
 
   // const count = io.engine.clientsCount;
   // console.log(count);
@@ -61,17 +100,17 @@ io.on("connection", (socket) => {
       console.log(rooms);
     }
 
+    // Handle existing message types...
+    if (message.type === "message" && name) {
+      broadcastMessage(message.room_id, message.data.content, message.name);
+    }
+
     // console.log(rooms.size);
 
     if (message.type === "leave" && socket.data.room_id && rooms.has(socket.data.room_id)) {
       // Remove the WebSocket from the room on leave
       rooms.get(socket.data.room_id)?.delete({name, socket});
       broadcastUserCount(socket.data.room_id);
-    }
-
-
-    if(message.type === "message" && name){
-      broadcastMessage(message.room_id,message.data.content, message.name);
     }
     
   });
@@ -107,6 +146,7 @@ io.on("connection", (socket) => {
   });
 });
 
+
 function broadcastMessage(room_id : string, data : string, name : string){
   console.log(data);
   console.log(rooms)
@@ -126,7 +166,6 @@ function broadcastUserCount (room_id : string) {
 }
 
 function broadCastUserJoined(room_id : string, name : string){
-  console.log("USER JOINING FUNCTIONING");
   console.log(room_id);
   rooms.get(room_id)?.forEach((client) => {
     client.socket.emit("userJoined", { type: "UserJoined", name });
